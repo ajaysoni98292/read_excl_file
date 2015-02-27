@@ -10,7 +10,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 
 /**
@@ -47,12 +51,14 @@ public class ExcelFileReader {
                             System.out.print(cell.getNumericCellValue() + "t");
                             break;
                         case Cell.CELL_TYPE_STRING:
+
                             counter++;
                             if (counter <= 400) {
                                 emailSender(cell.getStringCellValue());
                             } else {
                                 System.out.println("==========you have sent 400 emails ===");
                             }
+                            sheet.removeRow(sheet.getRow(cell.getRowIndex()));
                             break;
                     }
 
@@ -85,7 +91,37 @@ public class ExcelFileReader {
             SendGrid.Response response = sendgrid.send(email);
             System.out.println(response.getMessage());
         } catch (SendGridException e) {
-            System.err.println(e);
+
+            //Blank workbook
+            XSSFWorkbook workbook = new XSSFWorkbook();
+
+            //Create a blank sheet
+            XSSFSheet sheet = workbook.createSheet("Failed Mail List");
+
+            //This data needs to be written (Object[])
+            Map<String, String> data = new TreeMap<>();
+            data.put(String.valueOf(counter), toEmailId);
+
+            //Iterate over data and write to sheet
+            Set<String> keyset = data.keySet();
+            int rownum = 0;
+            for (String key : keyset) {
+                Row row = sheet.createRow(rownum++);
+                String obj = data.get(key);
+                int cellnum = 0;
+
+                Cell cell = row.createCell(cellnum++);
+                if (obj instanceof String)
+                    cell.setCellValue((String) obj);
+            }
+            try {
+                //Write the workbook in file system
+                FileOutputStream out = new FileOutputStream(new File("D:\\failedMailList.xlsx"));
+                workbook.write(out);
+                out.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 }

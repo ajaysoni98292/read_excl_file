@@ -30,6 +30,7 @@ public class EmailSender {
             System.out.println(response.getMessage());
         }
         catch (SendGridException e) {
+
             System.err.println(e);
         }
     }
