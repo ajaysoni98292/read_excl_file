@@ -18,18 +18,20 @@ import java.util.TreeMap;
 
 
 /**
+ *
  * @author ajay
  */
 
 public class ExcelFileReader {
 
     static int counter = 0;
+    static Map<String, String> failedEmailMap = new TreeMap<>();
 
     public static void main(String args[]) {
+
         try {
 
             FileInputStream file = new FileInputStream(new File("D:\\Testfile-Java-sendgrid.xlsx"));
-
             //Create Workbook instance holding reference to .xlsx file
             XSSFWorkbook workbook = new XSSFWorkbook(file);
 
@@ -51,20 +53,18 @@ public class ExcelFileReader {
                             System.out.print(cell.getNumericCellValue() + "t");
                             break;
                         case Cell.CELL_TYPE_STRING:
-
                             counter++;
                             if (counter <= 400) {
                                 emailSender(cell.getStringCellValue());
                             } else {
                                 System.out.println("==========you have sent 400 emails ===");
                             }
-                            sheet.removeRow(sheet.getRow(cell.getRowIndex()));
                             break;
                     }
 
                 }
-                System.out.println("");
             }
+            failedMailWriter(failedEmailMap);
             file.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -91,37 +91,39 @@ public class ExcelFileReader {
             SendGrid.Response response = sendgrid.send(email);
             System.out.println(response.getMessage());
         } catch (SendGridException e) {
+            failedEmailMap.put(String.valueOf(counter), toEmailId);
+        }
+    }
 
-            //Blank workbook
-            XSSFWorkbook workbook = new XSSFWorkbook();
+    static void failedMailWriter(Map<String, String> data) {
+        //Blank workbook
+        XSSFWorkbook workbook = new XSSFWorkbook();
 
-            //Create a blank sheet
-            XSSFSheet sheet = workbook.createSheet("Failed Mail List");
+        //Create a blank sheet
+        XSSFSheet sheet = workbook.createSheet("Failed Mail List");
 
-            //This data needs to be written (Object[])
-            Map<String, String> data = new TreeMap<>();
-            data.put(String.valueOf(counter), toEmailId);
+        //This data needs to be written (Object[])
 
-            //Iterate over data and write to sheet
-            Set<String> keyset = data.keySet();
-            int rownum = 0;
-            for (String key : keyset) {
-                Row row = sheet.createRow(rownum++);
-                String obj = data.get(key);
-                int cellnum = 0;
 
-                Cell cell = row.createCell(cellnum++);
-                if (obj instanceof String)
-                    cell.setCellValue((String) obj);
-            }
-            try {
-                //Write the workbook in file system
-                FileOutputStream out = new FileOutputStream(new File("D:\\failedMailList.xlsx"));
-                workbook.write(out);
-                out.close();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+        //Iterate over data and write to sheet
+        Set<String> keyset = data.keySet();
+        int rownum = 0;
+        for (String key : keyset) {
+            Row row = sheet.createRow(rownum++);
+            String obj = data.get(key);
+            int cellnum = 0;
+
+            Cell cell = row.createCell(cellnum++);
+            if (obj instanceof String)
+                cell.setCellValue((String) obj);
+        }
+        try {
+            //Write the workbook in file system
+            FileOutputStream out = new FileOutputStream(new File("D:\\failedMailList.xlsx"));
+            workbook.write(out);
+            out.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 }
